@@ -36,11 +36,11 @@ class AuthController extends Controller
      *         description="User registration data",
      *         @OA\JsonContent(
      *             required={"username", "email", "password", "password_confirmation"},
-     *             @OA\Property(property="username", type="string", example="john_doe"),
-     *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="your_password"),
-     *             @OA\Property(property="password_confirmation", type="string", format="password", example="your_password")
-     *         )
+     *             @OA\Property(property="username", type="string", example="nguyenvanha"),
+     *             @OA\Property(property="email", type="string", format="email", example="nguyenvanha@gmail.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="Aa@123456"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="Aa@123456")
+     *         )    
      *     ),
      *     @OA\Response(
      *         response=200,
@@ -106,8 +106,8 @@ class AuthController extends Controller
      *         description="User login data",
      *         @OA\JsonContent(
      *             required={"email", "password"},
-     *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="your_password")
+     *             @OA\Property(property="email", type="string", format="email", example="nguyenvanha@gmail.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="Aa@123456")
      *         )
      *     ),
      *     @OA\Response(
@@ -194,7 +194,7 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Profile data"),
-     *             @OA\Property(property="data", type="object", example={"username": "johndoe", "email": "johndoe@example.com"})
+     *             @OA\Property(property="data", type="object", example={"username": "nguyenvanha", "email": "nguyenvanha@gmail.com"})
      *         )
      *     )
      * )
