@@ -1,8 +1,6 @@
 ##URL
-https://joker-web.000webhostapp.com/
+https://ha-food-api.zenslab.com/
 
-##Login
-https://joker-web.000webhostapp.com/api/login
+##Swagger documentation
+https://ha-food-api.zenslab.com/api/documentation#/
 
-##Register
-https://joker-web.000webhostapp.com/api/register
