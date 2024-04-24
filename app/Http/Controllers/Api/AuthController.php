@@ -37,7 +37,7 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             required={"username", "email", "password", "password_confirmation"},
      *             @OA\Property(property="username", type="string", example="nguyenvanha"),
-     *             @OA\Property(property="email", type="string", format="email", example="test3@gmail.com"),
+     *             @OA\Property(property="email", type="string", format="email", example="nguyenvanha@gmail.com"),
      *             @OA\Property(property="password", type="string", format="password", example="Aa@123456"),
      *             @OA\Property(property="password_confirmation", type="string", format="password", example="Aa@123456")
      *         )    
@@ -106,7 +106,7 @@ class AuthController extends Controller
      *         description="User login data",
      *         @OA\JsonContent(
      *             required={"email", "password"},
-     *             @OA\Property(property="email", type="string", format="email", example="test3@gmail.com"),
+     *             @OA\Property(property="email", type="string", format="email", example="nguyenvanha@gmail.com"),
      *             @OA\Property(property="password", type="string", format="password", example="Aa@123456")
      *         )
      *     ),
@@ -194,7 +194,7 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Profile data"),
-     *             @OA\Property(property="data", type="object", example={"username": "nguyenvanha", "email": "test3@gmail.com"})
+     *             @OA\Property(property="data", type="object", example={"username": "nguyenvanha", "email": "nguyenvanha@gmail.com"})
      *         )
      *     )
      * )
