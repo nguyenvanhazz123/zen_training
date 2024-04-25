@@ -26,11 +26,14 @@ Route::apiResource('users', UserController::class);
 //=========================Authentication===============================//
 Route::post("register", [AuthController::class, 'register']);
 Route::post("login", [AuthController::class, 'login']);
+Route::post('forgot-password', [AuthController::class, 'sendResetLinkEmail']);
+Route::post('reset-password', [AuthController::class, 'reset'])->name('password.reset');
 
-Route::group([
+Route::group([  
     "middleware" => ["auth:api"]
 ], function(){
-
     Route::get("profile", [AuthController::class, "profile"]);
     Route::get("logout", [AuthController::class, "logout"]);
 });
+
+Route::post('refresh-token', [AuthController::class, 'refresh_token'])->middleware('jwt.refresh');
