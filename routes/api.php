@@ -36,4 +36,4 @@ Route::group([
     Route::get("logout", [AuthController::class, "logout"]);
 });
 
-Route::post('refresh-token', [AuthController::class, 'refresh_token'])->middleware('jwt.refresh');
+Route::get('refresh-token', [AuthController::class, 'refresh_token']);

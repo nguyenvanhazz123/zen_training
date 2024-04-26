@@ -207,14 +207,21 @@ class AuthController extends Controller
      * )
      */
     public function profile(){
+        try {
+            $userData = auth()->user();
 
-        $userData = auth()->user();
-
-        return response()->json([
-            "success" => true,
-            "message" => "Profile data",
-            "data" => $userData
-        ], 200);
+            return response()->json([
+                "success" => true,
+                "message" => "Profile data",
+                "data" => $userData
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "success" => false,
+                "message" => "Token expired, don't get profile user",
+            ], 401);
+        }
+        
     } 
 
 
@@ -247,7 +254,7 @@ class AuthController extends Controller
     }
 
     /**
-     * @OA\Post(
+     * @OA\Get(
      *     path="/api/refresh-token",
      *     summary="Refresh JWT Token",
      *     tags={"Authentication"},
@@ -275,10 +282,14 @@ class AuthController extends Controller
     {
         try {
             $newToken = JWTAuth::parseToken()->refresh();
+        } catch (TokenExpiredException $e) {
+            // Token đã hết hạn và không thể làm mới
+            return response()->json(['error' => 'token_expired'], 401);
         } catch (JWTException $e) {
+            // Các lỗi khác liên quan đến JWT
             return response()->json(['error' => 'token_invalid'], 401);
         }
-
+    
         return response()->json(['token' => $newToken]);
     }
 

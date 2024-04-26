@@ -274,12 +274,12 @@
             }
         },
         "/api/refresh-token": {
-            "post": {
+            "get": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Refresh JWT Token",
-                "operationId": "f753b79c2ec77495e13e9f31e550b1f6",
+                "operationId": "655ca00eedab46a70249055702390abb",
                 "requestBody": {
                     "required": true,
                     "content": {
