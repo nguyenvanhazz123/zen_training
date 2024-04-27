@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\RefreshToken;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -13,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\RateLimiter;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 
@@ -26,41 +28,76 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
  *   description="Enter JWT Bearer token **_only_**"
  * )
  */
+
+ /**
+ * @OA\Schema(
+ *   schema="User",
+ *   type="object",
+ *   title="User",
+ *   description="User account information",
+ *   @OA\Property(property="id", type="integer", example=1),
+ *   @OA\Property(property="username", type="string", example="john_doe"),
+ *   @OA\Property(property="email", type="string", format="email", example="john.doe@example.com")
+ * )
+ */
+
 class AuthController extends Controller
 {
 
      /**
      * @OA\Post(
      *     path="/api/register",
+     *     operationId="registerUser",
      *     tags={"Authentication"},
-     *     summary="Registers a new user",
-     *     description="Registers a new user with username, email, and password.",
+     *     summary="Register a new user",
+     *     description="Register a new user by providing username, email, and password.",
      *     @OA\RequestBody(
      *         required=true,
-     *         description="User registration data",
+     *         description="Pass user credentials",
      *         @OA\JsonContent(
      *             required={"username", "email", "password", "password_confirmation"},
-     *             @OA\Property(property="username", type="string", example="nguyenvanha"),
-     *             @OA\Property(property="email", type="string", format="email", example="nguyenvanha@gmail.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="Aa@123456"),
-     *             @OA\Property(property="password_confirmation", type="string", format="password", example="Aa@123456")
-     *         )    
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful registration",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="User registered successfully")
+     *             @OA\Property(property="username", type="string", example="john_doe"),
+     *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="Password123"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="Password123")
      *         )
      *     ),
      *     @OA\Response(
-     *         response=422,
-     *         description="Validation Error",
+     *         response=200,
+     *         description="User registered successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="User successfully registered"),
+     *             @OA\Property(property="user", type="object", ref="#/components/schemas/User"),
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+     *             @OA\Property(property="refresh_token", type="string", example="def50200d..."),
+     *             @OA\Property(property="expires_in", type="integer", example=3600)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid input data",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid data provided"),
+     *             @OA\Property(property="errors", type="object",
+     *                 @OA\Property(property="email", type="array",
+     *                     @OA\Items(type="string", example="The email field is required.")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error in server",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Error, not successfully"),
-     *             @OA\Property(property="errors", type="object")
+     *             @OA\Property(property="errors", type="object",
+     *                 @OA\Property(property="general", type="array",
+     *                     @OA\Items(type="string", example="Internal Server Error")
+     *                 )
+     *             )
      *         )
      *     )
      * )
@@ -75,15 +112,30 @@ class AuthController extends Controller
             ]);
 
             // Tạo user mới nếu không lỗi
-            User::create([
+            $user = User::create([
                 "username" => $request->username,
                 "email" => $request->email,
                 "password" => Hash::make($request->password)
             ]);
 
+            // Tạo access token
+            $token = Auth::guard('api')->login($user);
+
+            // Tạo refresh token
+            $refreshToken = Str::random(100);
+            RefreshToken::create([
+                'user_id' => $user->id,
+                'token' => $refreshToken,
+                'expires_at' => Carbon::now()->addWeeks(1) // Thời hạn refresh token là một tuần
+            ]);
+
             return response()->json([
                 "status" => true,
-                "message" => "User registered successfully"
+                'message' => 'User successfully registered',
+                'user' => $user,
+                'access_token' => $token,
+                'refresh_token' => $refreshToken,
+                'expires_in' => Auth::guard('api')->factory()->getTTL() * 60
             ], 200);
         } catch (ValidationException $e) {
             // Lấy ra tất cả các lỗi
@@ -93,7 +145,7 @@ class AuthController extends Controller
                 'status' => false,
                 'message' => 'Error, not successfully',
                 'errors' => $errors
-            ], 422);
+            ], 500);
         }
        
     }
@@ -102,90 +154,79 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *     path="/api/login",
+     *     operationId="loginUser",
      *     tags={"Authentication"},
-     *     summary="Logs in a user",
-     *     description="Logs in a user by email and password and returns a JWT token.",
+     *     summary="Log in a user",
+     *     description="Log in by providing email and password, returns access and refresh tokens.",
      *     @OA\RequestBody(
      *         required=true,
-     *         description="User login data",
+     *         description="User login credentials",
      *         @OA\JsonContent(
      *             required={"email", "password"},
-     *             @OA\Property(property="email", type="string", format="email", example="nguyenvanha@gmail.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="Aa@123456")
+     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="yourpassword")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Successful login",
      *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="user", type="object"),
-     *             @OA\Property(property="message", type="string", example="User logged in successfully"),
-     *             @OA\Property(property="access_token", type="string", example="jwt_token_here")
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+     *             @OA\Property(property="refresh_token", type="string", example="def50200d..."),
+     *             @OA\Property(property="expires_in", type="integer", example=3600)
      *         )
      *     ),
      *     @OA\Response(
-     *         response=422,
-     *         description="Validation Error or Too Many Attempts",
+     *         response=401,
+     *         description="Unauthorized",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Incorrect password or rate limit exceeded")
+     *             @OA\Property(property="error", type="string", example="Thông tin đăng nhập không chính xác")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="An error occurred")
      *         )
      *     )
      * )
      */
-    public function login(Request $request){
-        try {
-             // Kiểm tra dữ liệu đầu vào
-             $request->validate([
-                "email" => "required|email|exists:users,email",
-                "password" => "required"
-            ]);
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
 
-            //Dùng rate-limiter giới hạn mỗi email đăng nhập 5 lần / phút
-            if (RateLimiter::tooManyAttempts('login-message:'.$request->email, $perMinute = 5)) {
-                $seconds = RateLimiter::availableIn('login-message:'.$request->email);
-             
-                return response()->json([
-                    "success" => false,
-                    "message" => "Vui lòng đăng nhập sau $seconds giây",
-                ], 429);
-            }           
-            RateLimiter::increment('login-message:'.$request->email);
-    
-            
-            // JWTAuth: kiểm tra đăng nhập và tạo mã token từ email và password
-            $token = JWTAuth::attempt([
-                "email" => $request->email,
-                "password" => $request->password,
-            ]);
-            //Lấy user đang đăng nhập
-            $user = Auth::user();
-    
-            if (!empty($token)) {
-                RateLimiter::clear('login-attempt:'.$request->email);
-                return response()->json([
-                    "success" => true,
-                    'user' => $user,
-                    "message" => "User logged in successfully",
-                    "access_token" => $token,
-                ], 200);
-            } else {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Incorrect password",
-                ], 401);
-            }
-        } catch (ValidationException $e) {
-            $errors = $e->errors();
-    
+        if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $errors
-            ], 422);
+                "success" => false,
+                'error' => 'Thông tin đăng nhập không chính xác'
+            ], 401);
         }
+
+        $user = Auth::user();
+        $token = auth('api')->attempt($request->only('email', 'password'));
+
+        $user->refreshTokens()->delete();
+        $refreshToken = Str::random(100);
+        // Lưu refresh token vào database
+        $user->refreshTokens()->create([
+            'token' => $refreshToken,
+            'expires_at' => now()->addWeeks(1)
+        ]);
+
+        $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, true); // 7 days
+
+        return response()->json([
+            'access_token' => $token,
+            'refresh_token' => $refreshToken,
+            'expires_in' => auth('api')->factory()->getTTL() * 60
+        ])->withCookie($cookie);
     }
+
     
 
     /**
@@ -254,44 +295,61 @@ class AuthController extends Controller
     }
 
     /**
-     * @OA\Get(
+     * @OA\Post(
      *     path="/api/refresh-token",
-     *     summary="Refresh JWT Token",
+     *     operationId="refreshAccessToken",
      *     tags={"Authentication"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"token"},
-     *             @OA\Property(property="token", type="string", example="Your_Refresh_Token_Here")
-     *         )
-     *     ),
+     *     summary="Refresh access token",
+     *     description="Refreshes an expired access token using a refresh token stored in an HttpOnly cookie.",
      *     @OA\Response(
      *         response=200,
-     *         description="Token refreshed successfully",
+     *         description="Access token refreshed successfully",
      *         @OA\JsonContent(
-     *             @OA\Property(property="token", type="string", example="New_Access_Token")
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+     *             @OA\Property(property="expires_in", type="integer", example=3600)
      *         )
      *     ),
      *     @OA\Response(
      *         response=401,
-     *         description="Invalid token provided"
+     *         description="Unauthorized - No refresh token provided or token is invalid or expired",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="No refresh token provided")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="An error occurred")
+     *         )
      *     )
      * )
      */
-    public function refresh_token()
+    public function refresh_token(Request $request)
     {
-        try {
-            $newToken = JWTAuth::parseToken()->refresh();
-        } catch (TokenExpiredException $e) {
-            // Token đã hết hạn và không thể làm mới
-            return response()->json(['error' => 'token_expired'], 401);
-        } catch (JWTException $e) {
-            // Các lỗi khác liên quan đến JWT
-            return response()->json(['error' => 'token_invalid'], 401);
+        $refreshToken = $request->cookie('refresh_token');
+
+        if (!$refreshToken) {
+            return response()->json(['error' => 'No refresh token provided'], 401);
         }
-    
-        return response()->json(['token' => $newToken]);
+
+        $tokenData = RefreshToken::where('token', $refreshToken)
+                                ->where('expires_at', '>', now())
+                                ->first();
+
+        if (!$tokenData) {
+            return response()->json(['error' => 'Invalid or expired refresh token'], 401);
+        }
+
+        $user = User::find($tokenData->user_id);
+        $newToken = auth('api')->tokenById($user->id);
+
+        return response()->json([
+            'access_token' => $newToken,
+            'expires_in' => auth('api')->factory()->getTTL() * 60
+        ]);
     }
+
 
     /**
      * @OA\Post(

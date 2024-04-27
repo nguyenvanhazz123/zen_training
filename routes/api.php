@@ -36,4 +36,4 @@ Route::group([
     Route::get("logout", [AuthController::class, "logout"]);
 });
 
-Route::get('refresh-token', [AuthController::class, 'refresh_token']);
+Route::post('refresh-token', [AuthController::class, 'refresh_token']);

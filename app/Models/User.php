@@ -10,6 +10,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Notifications\PasswordReset;
+use App\Models\RefreshToken;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -50,6 +51,10 @@ class User extends Authenticatable implements JWTSubject
         'email_verified_at' => 'datetime',
     ];
 
+    public function refreshTokens()
+    {
+        return $this->hasMany(RefreshToken::class);
+    }
     public function getJWTIdentifier()
     {
       return $this->getKey();
