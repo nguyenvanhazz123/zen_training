@@ -18,11 +18,11 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Registers a new user",
-                "description": "Registers a new user with username, email, and password.",
-                "operationId": "8e4e3cb7b46126f4696379d3c7eeb4ad",
+                "summary": "Register a new user",
+                "description": "Register a new user by providing username, email, and password.",
+                "operationId": "registerUser",
                 "requestBody": {
-                    "description": "User registration data",
+                    "description": "Pass user credentials",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -36,22 +36,22 @@
                                 "properties": {
                                     "username": {
                                         "type": "string",
-                                        "example": "nguyenvanha"
+                                        "example": "john_doe"
                                     },
                                     "email": {
                                         "type": "string",
                                         "format": "email",
-                                        "example": "nguyenvanha@gmail.com"
+                                        "example": "john.doe@example.com"
                                     },
                                     "password": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "Aa@123456"
+                                        "example": "Password123"
                                     },
                                     "password_confirmation": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "Aa@123456"
+                                        "example": "Password123"
                                     }
                                 },
                                 "type": "object"
@@ -61,7 +61,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful registration",
+                        "description": "User registered successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -72,7 +72,22 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "User registered successfully"
+                                            "example": "User successfully registered"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        },
+                                        "access_token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "refresh_token": {
+                                            "type": "string",
+                                            "example": "def50200d..."
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
                                         }
                                     },
                                     "type": "object"
@@ -80,8 +95,40 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Validation Error",
+                    "400": {
+                        "description": "Invalid input data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid data provided"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "email": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "The email field is required."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error in server",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -95,6 +142,15 @@
                                             "example": "Error, not successfully"
                                         },
                                         "errors": {
+                                            "properties": {
+                                                "general": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "Internal Server Error"
+                                                    }
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
@@ -111,11 +167,11 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Logs in a user",
-                "description": "Logs in a user by email and password and returns a JWT token.",
-                "operationId": "222b2625838e3c57e017987f73598fda",
+                "summary": "Log in a user",
+                "description": "Log in by providing email and password, returns access and refresh tokens.",
+                "operationId": "loginUser",
                 "requestBody": {
-                    "description": "User login data",
+                    "description": "User login credentials",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -128,12 +184,12 @@
                                     "email": {
                                         "type": "string",
                                         "format": "email",
-                                        "example": "nguyenvanha@gmail.com"
+                                        "example": "user@example.com"
                                     },
                                     "password": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "Aa@123456"
+                                        "example": "yourpassword"
                                     }
                                 },
                                 "type": "object"
@@ -148,20 +204,17 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "user": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "User logged in successfully"
-                                        },
                                         "access_token": {
                                             "type": "string",
-                                            "example": "jwt_token_here"
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "refresh_token": {
+                                            "type": "string",
+                                            "example": "def50200d..."
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
                                         }
                                     },
                                     "type": "object"
@@ -169,8 +222,8 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Validation Error or Too Many Attempts",
+                    "401": {
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -179,9 +232,25 @@
                                             "type": "boolean",
                                             "example": false
                                         },
-                                        "message": {
+                                        "error": {
                                             "type": "string",
-                                            "example": "Incorrect password or rate limit exceeded"
+                                            "example": "Thông tin đăng nhập không chính xác"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "An error occurred"
                                         }
                                     },
                                     "type": "object"
@@ -274,41 +343,27 @@
             }
         },
         "/api/refresh-token": {
-            "get": {
+            "post": {
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Refresh JWT Token",
-                "operationId": "655ca00eedab46a70249055702390abb",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "token"
-                                ],
-                                "properties": {
-                                    "token": {
-                                        "type": "string",
-                                        "example": "Your_Refresh_Token_Here"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
+                "summary": "Refresh access token",
+                "description": "Refreshes an expired access token using a refresh token stored in an HttpOnly cookie.",
+                "operationId": "refreshAccessToken",
                 "responses": {
                     "200": {
-                        "description": "Token refreshed successfully",
+                        "description": "Access token refreshed successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "token": {
+                                        "access_token": {
                                             "type": "string",
-                                            "example": "New_Access_Token"
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
                                         }
                                     },
                                     "type": "object"
@@ -317,7 +372,36 @@
                         }
                     },
                     "401": {
-                        "description": "Invalid token provided"
+                        "description": "Unauthorized - No refresh token provided or token is invalid or expired",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "No refresh token provided"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "An error occurred"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -483,13 +567,26 @@
         }
     },
     "components": {
-        "securitySchemes": {
-            "bearerAuth": {
-                "type": "http",
-                "description": "Enter JWT Bearer token **_only_**",
-                "in": "header",
-                "bearerFormat": "JWT",
-                "scheme": "bearer"
+        "schemas": {
+            "User": {
+                "title": "User",
+                "description": "User account information",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "username": {
+                        "type": "string",
+                        "example": "john_doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john.doe@example.com"
+                    }
+                },
+                "type": "object"
             }
         }
     }
