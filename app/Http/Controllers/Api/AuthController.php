@@ -237,13 +237,13 @@ class AuthController extends Controller
             'expires_at' => now()->addWeeks(1)
         ]);
 
-        // $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, true); // 7 days
+        $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, false); // 7 days
 
         return response()->json([
             'access_token' => $token,
             'refresh_token' => $refreshToken,
             'expires_in' => auth('api')->factory()->getTTL() * 60
-        ]);
+        ])->withCookie($cookie);
     }
 
     
