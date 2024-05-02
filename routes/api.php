@@ -28,6 +28,7 @@ Route::post("register", [AuthController::class, 'register']);
 Route::post("login", [AuthController::class, 'login']);
 Route::post('forgot-password', [AuthController::class, 'sendResetLinkEmail']);
 Route::post('reset-password', [AuthController::class, 'reset'])->name('password.reset');
+Route::post('refresh-token', [AuthController::class, 'refresh_token']);
 
 Route::group([  
     "middleware" => ["auth:api"]
@@ -36,4 +37,3 @@ Route::group([
     Route::get("logout", [AuthController::class, "logout"]);
 });
 
-Route::post('refresh-token', [AuthController::class, 'refresh_token']);

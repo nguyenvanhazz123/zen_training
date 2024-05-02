@@ -18,16 +18,7 @@ use Illuminate\Support\Carbon;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 
- /**
- * @OA\SecurityScheme(
- *   securityScheme="bearerAuth",
- *   type="http",
- *   scheme="bearer",
- *   bearerFormat="JWT",
- *   in="header",
- *   description="Enter JWT Bearer token **_only_**"
- * )
- */
+ 
 
  /**
  * @OA\Schema(
@@ -38,6 +29,15 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
  *   @OA\Property(property="id", type="integer", example=1),
  *   @OA\Property(property="username", type="string", example="john_doe"),
  *   @OA\Property(property="email", type="string", format="email", example="john.doe@example.com")
+ * )
+ * 
+ *  * @OA\SecurityScheme(
+ *   securityScheme="bearerAuth",
+ *   type="http",
+ *   scheme="bearer",
+ *   bearerFormat="JWT",
+ *   in="header",
+ *   description="Enter JWT Bearer token **_only_**"
  * )
  */
 
@@ -237,13 +237,13 @@ class AuthController extends Controller
             'expires_at' => now()->addWeeks(1)
         ]);
 
-        $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, false); // 7 days
+        // $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, true); // 7 days
 
         return response()->json([
             'access_token' => $token,
             'refresh_token' => $refreshToken,
             'expires_in' => auth('api')->factory()->getTTL() * 60
-        ])->withCookie($cookie);
+        ]);
     }
 
     
@@ -252,16 +252,31 @@ class AuthController extends Controller
      * @OA\Get(
      *     path="/api/profile",
      *     tags={"Authentication"},
-     *     summary="User profile",
-     *     description="Returns the profile of the authenticated user.",
+     *     summary="Get user profile",
+     *     description="Retrieves the profile of the authenticated user. Requires a valid JWT token.",
+     *     operationId="getUserProfile",
      *     security={{ "bearerAuth": {} }},
      *     @OA\Response(
      *         response=200,
-     *         description="Profile data retrieved successfully",
+     *         description="Successful operation",
      *         @OA\JsonContent(
+     *             type="object",
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Profile data"),
-     *             @OA\Property(property="data", type="object", example={"username": "nguyenvanha", "email": "nguyenvanha@gmail.com"})
+     *             @OA\Property(property="message", type="string", example="Dữ liệu thông tin người dùng"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 ref="#/components/schemas/User"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Token hết hạn không thể lấy thông tin người dùng")
      *         )
      *     )
      * )
@@ -346,7 +361,7 @@ class AuthController extends Controller
      */
     public function refresh_token(Request $request)
     {
-        $refreshToken = $request->cookie('refresh_token');
+        $refreshToken = $request->bearerToken();
 
         if (!$refreshToken) {
             return response()->json(['error' => 'Refresh token không tồn tại'], 401);
@@ -365,6 +380,7 @@ class AuthController extends Controller
 
         return response()->json([
             'access_token' => $newToken,
+            'refresh_token' => $refreshToken,
             'expires_in' => auth('api')->factory()->getTTL() * 60
         ]);
     }
