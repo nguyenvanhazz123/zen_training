@@ -131,7 +131,7 @@ class AuthController extends Controller
 
             return response()->json([
                 "status" => true,
-                'message' => 'User successfully registered',
+                'message' => 'Đăng ký người dùng thành công',
                 'user' => $user,
                 'access_token' => $token,
                 'refresh_token' => $refreshToken,
@@ -143,7 +143,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => false,
-                'message' => 'Error, not successfully',
+                'message' => 'Lỗi, đăng ký không thành công',
                 'errors' => $errors
             ], 500);
         }
@@ -156,15 +156,15 @@ class AuthController extends Controller
      *     path="/api/login",
      *     operationId="loginUser",
      *     tags={"Authentication"},
-     *     summary="Log in a user",
-     *     description="Log in by providing email and password, returns access and refresh tokens.",
+     *     summary="Logs in a user",
+     *     description="Logs in by providing an email and password. Limits login attempts to 5 per minute per email.",
      *     @OA\RequestBody(
      *         required=true,
      *         description="User login credentials",
      *         @OA\JsonContent(
      *             required={"email", "password"},
      *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="yourpassword")
+     *             @OA\Property(property="password", type="string", format="password", example="pass1234")
      *         )
      *     ),
      *     @OA\Response(
@@ -185,8 +185,16 @@ class AuthController extends Controller
      *         )
      *     ),
      *     @OA\Response(
+     *         response=429,
+     *         description="Too many login attempts",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Vui lòng đăng nhập sau {seconds} giây")
+     *         )
+     *     ),
+     *     @OA\Response(
      *         response=500,
-     *         description="Internal server error",
+     *         description="Internal Server Error",
      *         @OA\JsonContent(
      *             @OA\Property(property="error", type="string", example="An error occurred")
      *         )
@@ -207,6 +215,17 @@ class AuthController extends Controller
             ], 401);
         }
 
+        //Dùng rate-limiter giới hạn mỗi email đăng nhập 5 lần / phút
+        if (RateLimiter::tooManyAttempts('login-message:'.$request->email, $perMinute = 5)) {
+            $seconds = RateLimiter::availableIn('login-message:'.$request->email);
+
+            return response()->json([
+                "success" => false,
+                "message" => "Vui lòng đăng nhập sau $seconds giây",
+            ], 429);
+        }           
+        RateLimiter::increment('login-message:'.$request->email);
+
         $user = Auth::user();
         $token = auth('api')->attempt($request->only('email', 'password'));
 
@@ -218,13 +237,13 @@ class AuthController extends Controller
             'expires_at' => now()->addWeeks(1)
         ]);
 
-        $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, true); // 7 days
+        // $cookie = cookie('refresh_token', $refreshToken, 60 * 24 * 7, null, null, true, true); // 7 days
 
         return response()->json([
             'access_token' => $token,
             'refresh_token' => $refreshToken,
             'expires_in' => auth('api')->factory()->getTTL() * 60
-        ])->withCookie($cookie);
+        ]);
     }
 
     
@@ -253,13 +272,13 @@ class AuthController extends Controller
 
             return response()->json([
                 "success" => true,
-                "message" => "Profile data",
+                "message" => "Dữ liệu thông tin người dùng",
                 "data" => $userData
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 "success" => false,
-                "message" => "Token expired, don't get profile user",
+                "message" => "Token hết hạn không thể lấy thông tin người dùng",
             ], 401);
         }
         
@@ -278,7 +297,7 @@ class AuthController extends Controller
      *         description="Successfully logged out",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="User logged out successfully")
+     *             @OA\Property(property="message", type="string", example="Đăng xuất thành công")
      *         )
      *     )
      * )
@@ -290,7 +309,7 @@ class AuthController extends Controller
 
         return response()->json([
             "success" => true,
-            "message" => "User logged out successfully"
+            "message" => "Đăng xuất thành công"
         ], 200);
     }
 
@@ -313,7 +332,7 @@ class AuthController extends Controller
      *         response=401,
      *         description="Unauthorized - No refresh token provided or token is invalid or expired",
      *         @OA\JsonContent(
-     *             @OA\Property(property="error", type="string", example="No refresh token provided")
+     *             @OA\Property(property="error", type="string", example="Refresh token không tồn tại hoặc đã hết hạn")
      *         )
      *     ),
      *     @OA\Response(
@@ -330,7 +349,7 @@ class AuthController extends Controller
         $refreshToken = $request->cookie('refresh_token');
 
         if (!$refreshToken) {
-            return response()->json(['error' => 'No refresh token provided'], 401);
+            return response()->json(['error' => 'Refresh token không tồn tại'], 401);
         }
 
         $tokenData = RefreshToken::where('token', $refreshToken)
@@ -338,7 +357,7 @@ class AuthController extends Controller
                                 ->first();
 
         if (!$tokenData) {
-            return response()->json(['error' => 'Invalid or expired refresh token'], 401);
+            return response()->json(['error' => 'Refresh token đã hết hạn. Vui lòng đăng nhập lại'], 401);
         }
 
         $user = User::find($tokenData->user_id);
@@ -368,7 +387,7 @@ class AuthController extends Controller
      *         description="Reset link sent successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Đã gửi email thay đổi mật khẩu")
+     *             @OA\Property(property="message", type="string", example="Đã gửi email thay đổi mật khẩu, vui lòng kiểm tra email của bạn")
      *         )
      *     ),
      *     @OA\Response(
@@ -390,7 +409,7 @@ class AuthController extends Controller
         );
 
         return $status == Password::RESET_LINK_SENT
-               ? response()->json(['success' => true, 'message' => "Đã gửi email thay đổi mật khẩu"], 200)
+               ? response()->json(['success' => true, 'message' => "Đã gửi email thay đổi mật khẩu, vui lòng kiểm tra email của bạn"], 200)
                : response()->json(['success' => false, 'message' => "Xảy ra lỗi"], 422);
     }
 
