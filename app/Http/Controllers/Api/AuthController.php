@@ -8,15 +8,11 @@ use App\Models\User;
 use App\Models\RefreshToken;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\RateLimiter;
-use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-
 
  
 
@@ -123,6 +119,7 @@ class AuthController extends Controller
 
             // Tạo refresh token
             $refreshToken = Str::random(100);
+            // $refreshToken = JWTAuth::refreshToken($token);
             RefreshToken::create([
                 'user_id' => $user->id,
                 'token' => $refreshToken,
