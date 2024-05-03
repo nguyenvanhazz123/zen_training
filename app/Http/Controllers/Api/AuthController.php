@@ -13,8 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-
- 
+use App\Jobs\SendResetPasswordEmail;    
 
  /**
  * @OA\Schema(
@@ -137,10 +136,18 @@ class AuthController extends Controller
         } catch (ValidationException $e) {
             // Lấy ra tất cả các lỗi
             $errors = $e->errors();
+            $message = "";
+
+            if (isset($errors['email'])) {
+                $message = "Email đã tồn tại";
+            }
+            else if (isset($errors['password'])) {
+                $message = "Mật khẩu xác thực không chính xác";
+            }
 
             return response()->json([
                 'status' => false,
-                'message' => 'Lỗi, đăng ký không thành công',
+                'message' => $message,
                 'errors' => $errors
             ], 500);
         }
@@ -203,14 +210,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
-        ]);
-
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                "success" => false,
-                'error' => 'Thông tin đăng nhập không chính xác'
-            ], 401);
-        }
+        ]); 
 
         //Dùng rate-limiter giới hạn mỗi email đăng nhập 5 lần / phút
         if (RateLimiter::tooManyAttempts('login-message:'.$request->email, $perMinute = 5)) {
@@ -218,10 +218,17 @@ class AuthController extends Controller
 
             return response()->json([
                 "success" => false,
-                "message" => "Vui lòng đăng nhập sau $seconds giây",
+                "error" => "Vui lòng đăng nhập sau $seconds giây",
             ], 429);
         }           
         RateLimiter::increment('login-message:'.$request->email);
+
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            return response()->json([
+                "success" => false,
+                'error' => 'Thông tin đăng nhập không chính xác'
+            ], 401);
+        }
 
         $user = Auth::user();
         $token = auth('api')->attempt($request->only('email', 'password'));
@@ -415,15 +422,23 @@ class AuthController extends Controller
      */
     public function sendResetLinkEmail(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        try {
+            $request->validate(['email' => 'required|email']);
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        return $status == Password::RESET_LINK_SENT
-               ? response()->json(['success' => true, 'message' => "Đã gửi email thay đổi mật khẩu, vui lòng kiểm tra email của bạn"], 200)
-               : response()->json(['success' => false, 'message' => "Xảy ra lỗi"], 422);
+            $status = Password::sendResetLink(
+                $request->only('email')
+            );
+    
+            return $status == Password::RESET_LINK_SENT
+                   ? response()->json(['success' => true, 'message' => "Đã gửi email thay đổi mật khẩu, vui lòng kiểm tra email của bạn"], 200)
+                   : response()->json(['success' => false, 'message' => "Email chưa được đăng ký"], 422);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "success" => false,
+                "message" => "Vui lòng nhập đúng định dạng email"
+            ]);
+        }
+        
     }
 
     /**
