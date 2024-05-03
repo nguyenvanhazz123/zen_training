@@ -17,7 +17,8 @@ class Kernel extends ConsoleKernel
         // $schedule->call(function(){
         //     User::whereNull("fullname")->forceDelete();
         // })->everyMinute();
-        $schedule->command('refresh-tokens:cleanup')->everyMinute();
+        $schedule->command('refresh-tokens:cleanup')->dailyAt('02:00');
+
     }
 
     /**
