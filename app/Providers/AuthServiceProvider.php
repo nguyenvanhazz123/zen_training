@@ -1,11 +1,11 @@
 <?php
 
 namespace App\Providers;
-
 use App\Models\User;
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Auth\Notifications\ResetPassword;
+
 class AuthServiceProvider extends ServiceProvider
 {
     /**
@@ -25,7 +25,7 @@ class AuthServiceProvider extends ServiceProvider
         // $this->registerPolicies();
 
         ResetPassword::createUrlUsing(function (User $user, string $token) {
-            return 'http://localhost:5173/change-password?token='.$token.'&email='.$user->email;
+            return 'https://order-food-haapi-x2sc.vercel.app/change-password?token='.$token.'&email='.$user->email;
         });
     }
 }
